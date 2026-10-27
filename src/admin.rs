@@ -9,9 +9,64 @@ pub fn initialize(db: &Connection) -> rusqlite::Result<()> {
         CREATE TABLE IF NOT EXISTS download_limits(id INTEGER PRIMARY KEY CHECK(id=1),stream_mb INTEGER NOT NULL,job_mb INTEGER NOT NULL,storage_mb INTEGER NOT NULL);
         INSERT OR IGNORE INTO download_limits VALUES(1,256,768,4096);
         CREATE TABLE IF NOT EXISTS download_limits_audit(id INTEGER PRIMARY KEY,actor INTEGER NOT NULL REFERENCES users(id),stream_mb INTEGER NOT NULL,job_mb INTEGER NOT NULL,storage_mb INTEGER NOT NULL,created INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS session_policy(id INTEGER PRIMARY KEY CHECK(id=1),hours INTEGER NOT NULL CHECK(hours BETWEEN 1 AND 8760));
+        INSERT OR IGNORE INTO session_policy VALUES(1,720);
+        CREATE TABLE IF NOT EXISTS session_policy_audit(id INTEGER PRIMARY KEY,actor INTEGER NOT NULL REFERENCES users(id),hours INTEGER NOT NULL,created INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS download_retention(id INTEGER PRIMARY KEY CHECK(id=1),file_hours INTEGER NOT NULL,history_hours INTEGER NOT NULL);
         INSERT OR IGNORE INTO download_retention VALUES(1,24,48);
         CREATE TABLE IF NOT EXISTS download_retention_audit(id INTEGER PRIMARY KEY,actor INTEGER NOT NULL REFERENCES users(id),file_hours INTEGER NOT NULL,history_hours INTEGER NOT NULL,created INTEGER NOT NULL);")
+}
+
+#[derive(Clone, Copy, Deserialize, serde::Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct SessionPolicy {
+    pub hours: u32,
+}
+impl SessionPolicy {
+    fn validate(self) -> ApiResult<()> {
+        if !(1..=8760).contains(&self.hours) {
+            return Err(bad("登入有效時間須為 1–8760 小時"));
+        }
+        Ok(())
+    }
+    pub fn seconds(self) -> i64 {
+        i64::from(self.hours) * 3600
+    }
+}
+pub fn session_policy(db: &Connection) -> ApiResult<SessionPolicy> {
+    let policy = db.query_row("SELECT hours FROM session_policy WHERE id=1", [], |r| {
+        Ok(SessionPolicy { hours: r.get(0)? })
+    })?;
+    policy.validate()?;
+    Ok(policy)
+}
+pub async fn session_settings(State(a): State<Arc<App>>, h: HeaderMap) -> ApiResult<Json<Value>> {
+    authorize(&a, &h, false)?;
+    Ok(Json(json!(session_policy(&a.db.lock().unwrap())?)))
+}
+pub async fn update_session_settings(
+    State(a): State<Arc<App>>,
+    h: HeaderMap,
+    Json(policy): Json<SessionPolicy>,
+) -> ApiResult<Json<Value>> {
+    let s = authorize(&a, &h, true)?;
+    policy.validate()?;
+    a.limit(format!("admin-session:{}", s.uid), 30, 60)?;
+    let mut db = a.db.lock().unwrap();
+    let tx = db.transaction()?;
+    if !is_admin(&tx, s.uid)? {
+        return Err(ApiError(StatusCode::FORBIDDEN, "此功能僅限管理員使用"));
+    }
+    tx.execute(
+        "UPDATE session_policy SET hours=? WHERE id=1",
+        [policy.hours],
+    )?;
+    tx.execute(
+        "INSERT INTO session_policy_audit(actor,hours,created) VALUES(?,?,?)",
+        params![s.uid, policy.hours, now()],
+    )?;
+    tx.commit()?;
+    Ok(Json(json!(policy)))
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Deserialize, serde::Serialize)]
@@ -225,7 +280,7 @@ fn authorize(a: &App, h: &HeaderMap, write: bool) -> ApiResult<Session> {
 pub async fn config(State(a): State<Arc<App>>) -> ApiResult<Json<Value>> {
     let db = a.db.lock().unwrap();
     Ok(Json(
-        json!({"registration_open":registration_open(&db)?,"download_limits":download_limits(&db)?,"retention":retention(&db)?}),
+        json!({"registration_open":registration_open(&db)?,"download_limits":download_limits(&db)?,"retention":retention(&db)?,"session_policy":session_policy(&db)?}),
     ))
 }
 pub async fn page(State(a): State<Arc<App>>, h: HeaderMap) -> ApiResult<Html<&'static str>> {

@@ -159,7 +159,7 @@ fn session(a: &App, h: &HeaderMap, write: bool) -> ApiResult<Session> {
     }
     let token = digest(raw);
     let db = a.db.lock().unwrap();
-    let s=db.query_row("SELECT s.user_id,s.csrf,u.email,u.totp IS NOT NULL FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token=? AND s.expires>? AND s.seen>?",params![token,now(),now()-7*86400],|r|Ok(Session{uid:r.get(0)?,token:token.clone(),csrf:r.get(1)?,email:r.get(2)?,mfa:r.get(3)?})).optional()?.ok_or_else(denied)?;
+    let s=db.query_row("SELECT s.user_id,s.csrf,u.email,u.totp IS NOT NULL FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token=? AND s.expires>?",params![token,now()],|r|Ok(Session{uid:r.get(0)?,token:token.clone(),csrf:r.get(1)?,email:r.get(2)?,mfa:r.get(3)?})).optional()?.ok_or_else(denied)?;
     if write
         && !constant(
             s.csrf.as_bytes(),
@@ -184,22 +184,20 @@ fn issue(a: &App, uid: i64) -> ApiResult<Response> {
     issue_locked(a, &db, uid)
 }
 fn issue_locked(a: &App, db: &Connection, uid: i64) -> ApiResult<Response> {
+    let lifetime = admin::session_policy(db)?.seconds();
     let raw = random_hex(32);
     let csrf = random_hex(32);
-    db.execute(
-        "DELETE FROM sessions WHERE expires<=? OR seen<=?",
-        params![now(), now() - 7 * 86400],
-    )?;
+    db.execute("DELETE FROM sessions WHERE expires<=?", [now()])?;
     // At most ten persistent sessions per account.
     db.execute("DELETE FROM sessions WHERE token IN (SELECT token FROM sessions WHERE user_id=? ORDER BY seen DESC LIMIT -1 OFFSET 9)",[uid])?;
     db.execute(
         "INSERT INTO sessions VALUES(?,?,?,?,?)",
-        params![digest(&raw), uid, csrf, now() + 30 * 86400, now()],
+        params![digest(&raw), uid, csrf, now() + lifetime, now()],
     )?;
     let mut r = Json(json!({"ok":true,"csrf":csrf})).into_response();
     r.headers_mut().insert(
         header::SET_COOKIE,
-        HeaderValue::from_str(&a.cookie(&raw, 30 * 86400)).unwrap(),
+        HeaderValue::from_str(&a.cookie(&raw, lifetime)).unwrap(),
     );
     Ok(r)
 }
@@ -617,6 +615,10 @@ pub fn router(a: Arc<App>) -> Router {
         .route("/api/mfa/enroll", post(enroll))
         .route("/api/mfa/confirm", post(confirm))
         .route("/api/mfa/disable", post(disable))
+        .route(
+            "/api/admin/session-policy",
+            get(admin::session_settings).post(admin::update_session_settings),
+        )
         .route("/api/sessions/revoke", post(revoke))
         .route("/api/inspect", post(media::inspect))
         .route("/api/jobs", get(media::list).post(media::create))

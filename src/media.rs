@@ -755,8 +755,5 @@ pub async fn cleanup(a: &App) {
     }
     // Expired session records and old job history are not retained indefinitely.
     let db = a.db.lock().unwrap();
-    let _ = db.execute(
-        "DELETE FROM sessions WHERE expires<? OR seen<?",
-        params![now(), now() - 7 * 86400],
-    );
+    let _ = db.execute("DELETE FROM sessions WHERE expires<=?", [now()]);
 }

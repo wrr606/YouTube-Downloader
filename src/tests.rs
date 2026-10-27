@@ -1634,7 +1634,7 @@ async fn session_survives_server_restart_but_expires() {
         request(&a, "GET", "/api/me", json!({}), &c, "", None)
             .await
             .0,
-        401
+        200
     );
     a.db.lock()
         .unwrap()
@@ -1969,4 +1969,100 @@ async fn oversized_payload_and_auth_rate_limit() {
     )
     .await;
     assert_eq!(s, 429);
+}
+
+#[tokio::test]
+async fn session_policy_is_authorized_persistent_and_applies_to_new_logins() {
+    let (tmp, a) = fixture();
+    let (cookie, csrf) = signup(&a, "session@example.test").await;
+    let route = "/api/admin/session-policy";
+    let policy = json!({"hours":48});
+    assert_eq!(
+        request(&a, "GET", route, json!({}), "", "", None).await.0,
+        401
+    );
+    assert_eq!(
+        request(&a, "GET", route, json!({}), &cookie, "", None)
+            .await
+            .0,
+        403
+    );
+    assert_eq!(post(&a, route, policy.clone(), &cookie, &csrf).await.0, 403);
+    admin::set_role(&a.db.lock().unwrap(), "grant", "session@example.test").unwrap();
+    assert_eq!(
+        request(&a, "GET", route, json!({}), &cookie, "", None)
+            .await
+            .2["hours"],
+        720
+    );
+    assert_eq!(post(&a, route, policy.clone(), &cookie, "").await.0, 403);
+    for hours in [0, 8761] {
+        assert_eq!(
+            post(&a, route, json!({"hours":hours}), &cookie, &csrf)
+                .await
+                .0,
+            400
+        );
+    }
+    let old_expiry: i64 =
+        a.db.lock()
+            .unwrap()
+            .query_row("SELECT expires FROM sessions", [], |r| r.get(0))
+            .unwrap();
+    assert_eq!(
+        post(&a, route, policy.clone(), &cookie, &csrf).await.2,
+        policy
+    );
+    let db = Connection::open(tmp.path().join("harbor.sqlite3")).unwrap();
+    admin::initialize(&db).unwrap();
+    assert_eq!(admin::session_policy(&db).unwrap().hours, 48);
+    assert_eq!(
+        db.query_row("SELECT expires FROM sessions", [], |r| r.get::<_, i64>(0))
+            .unwrap(),
+        old_expiry
+    );
+    // Idle sessions survive both periodic cleanup and new session issuance.
+    db.execute("UPDATE sessions SET seen=?", [now() - 8 * 86400])
+        .unwrap();
+    media::cleanup(&a).await;
+    let before = now();
+    let (status, headers, _) = post(
+        &a,
+        "/api/login",
+        json!({"email":"session@example.test","password":"correct horse battery staple"}),
+        "",
+        "",
+    )
+    .await;
+    assert_eq!(status, 200);
+    assert!(
+        headers[header::SET_COOKIE]
+            .to_str()
+            .unwrap()
+            .contains("Max-Age=172800")
+    );
+    let new_expiry: i64 = db
+        .query_row("SELECT MIN(expires) FROM sessions", [], |r| r.get(0))
+        .unwrap();
+    assert!((before + 48 * 3600..=now() + 48 * 3600).contains(&new_expiry));
+    assert_eq!(
+        request(&a, "GET", "/api/me", json!({}), &cookie, "", None)
+            .await
+            .0,
+        200
+    );
+    assert_eq!(
+        db.query_row("SELECT MAX(expires) FROM sessions", [], |r| r
+            .get::<_, i64>(0))
+            .unwrap(),
+        old_expiry
+    );
+    db.execute("UPDATE sessions SET expires=?", [now()])
+        .unwrap();
+    assert_eq!(
+        request(&a, "GET", "/api/me", json!({}), &cookie, "", None)
+            .await
+            .0,
+        401
+    );
 }

@@ -7,6 +7,14 @@
 <form id="admin-form"><div class="setting-row"><div><label for="registration-open">開放新帳號註冊</label><p class="input-footnote">關閉後，既有帳號仍可正常登入與下載。</p></div><input type="checkbox" role="switch" id="registration-open" disabled></div><p id="registration-status" class="input-footnote" role="status">讀取設定中…</p><div class="setting-actions"><button type="submit" id="save-settings" class="button primary" disabled>儲存設定</button></div></form>
 <p id="admin-message" class="input-footnote" role="status" hidden></p><p id="admin-error" class="error-text" role="alert" hidden></p>
 </section>
+<section class="card library" aria-labelledby="session-title">
+<h2 id="session-title">登入有效時間</h2>
+<form id="session-form"><label>固定有效時間（小時）<input id="session-hours" type="number" min="1" max="8760" step="1" required disabled></label>
+<p class="input-footnote">從登入時計算固定期限，活動或閒置都不會改變到期時間。預設 720 小時（30 天），可設定 1–8760 小時。</p>
+<p class="input-footnote">儲存後的新登入立即套用，無須重啟；既有登入保留原到期時間。</p>
+<div class="setting-actions"><button id="save-session" class="button primary" type="submit" disabled>儲存登入有效時間</button></div></form>
+<p id="session-status" class="input-footnote" role="status">讀取設定中…</p><p id="session-error" class="error-text" role="alert" hidden></p>
+</section>
 <section class="card library" aria-labelledby="limits-title">
 <h2 id="limits-title">下載大小限制</h2>
 <form id="limits-form"><div class="limits-grid">

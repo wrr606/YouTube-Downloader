@@ -37,7 +37,7 @@ let pollTimer;
 function schedulePoll(){clearTimeout(pollTimer);pollTimer=setTimeout(tick,jobs.some(j=>j.status==='working')?1000:30000);}
 async function tick(){if(user&&!document.hidden)await loadJobs();else schedulePoll();}
 document.addEventListener('visibilitychange',()=>{if(user&&!document.hidden)loadJobs();});
-async function refreshRegistration(){try{const config=await api('/api/config');registrationOpen=config.registration_open;renderRetention(config.retention);text('auth-open',registrationOpen?'登入 / 註冊':'登入');show('register-tab',registrationOpen);show('registration-notice',!registrationOpen);if(!registrationOpen&&mode==='register')setMode('login');}catch{registrationOpen=false;show('register-tab',false);}}
+async function refreshRegistration(){try{const config=await api('/api/config');registrationOpen=config.registration_open;text('session-note','登入後固定有效 '+config.session_policy.hours+' 小時，期間活動或閒置都不會改變到期時間。');renderRetention(config.retention);text('auth-open',registrationOpen?'登入 / 註冊':'登入');show('register-tab',registrationOpen);show('registration-notice',!registrationOpen);if(!registrationOpen&&mode==='register')setMode('login');}catch{registrationOpen=false;show('register-tab',false);}}
 refreshRegistration();
 refreshUser().then(loadJobs).then(schedulePoll);
 

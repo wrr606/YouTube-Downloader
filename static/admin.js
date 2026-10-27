@@ -5,6 +5,18 @@ async function request(path,body){const options={credentials:'same-origin',heade
 function render(){el('registration-open').checked=saved;el('registration-status').textContent=saved?'目前開放註冊':'目前已關閉註冊';el('registration-open').disabled=!loaded;el('save-settings').disabled=true;}
 el('registration-open').addEventListener('change',()=>{el('save-settings').disabled=!loaded||el('registration-open').checked===saved;el('registration-status').textContent=el('registration-open').checked===saved?(saved?'目前開放註冊':'目前已關閉註冊'):'設定尚未儲存';el('admin-message').hidden=true;});
 el('admin-form').addEventListener('submit',async e=>{e.preventDefault();if(!loaded)return;el('save-settings').disabled=true;el('registration-open').disabled=true;el('admin-error').hidden=true;el('admin-message').hidden=true;try{const data=await request('/api/admin/settings',{registration_open:el('registration-open').checked});saved=data.registration_open;render();el('admin-message').textContent='設定已儲存，即刻生效。';el('admin-message').hidden=false;}catch(e){el('admin-error').textContent=e.message;el('admin-error').hidden=false;el('registration-open').disabled=false;el('save-settings').disabled=el('registration-open').checked===saved;}});
+let sessionLoaded=false,sessionSaving=false;
+function sessionBusy(busy){['session-hours','save-session'].forEach(id=>el(id).disabled=busy||!sessionLoaded);}
+async function loadSession(){try{const data=await request('/api/admin/session-policy');el('session-hours').value=data.hours;sessionLoaded=true;sessionBusy(false);el('session-status').textContent='設定已載入，修改後請按儲存。';}catch(e){el('session-error').textContent=e.message;el('session-error').hidden=false;el('session-status').textContent='無法讀取設定';}}
+el('session-form').addEventListener('submit',async e=>{
+    e.preventDefault();if(!sessionLoaded||sessionSaving)return;
+    const hours=Number(el('session-hours').value);el('session-error').hidden=true;
+    if(!Number.isSafeInteger(hours)||hours<1||hours>8760){el('session-error').textContent='請輸入 1–8760 的整數小時。';el('session-error').hidden=false;return;}
+    sessionSaving=true;sessionBusy(true);el('session-status').textContent='儲存中…';
+    try{const data=await request('/api/admin/session-policy',{hours});el('session-hours').value=data.hours;el('session-status').textContent='登入有效時間已儲存，新登入立即套用。';}
+    catch(e){el('session-error').textContent=e.message;el('session-error').hidden=false;el('session-status').textContent='設定尚未儲存';}
+    finally{sessionSaving=false;sessionBusy(false);}
+});
 let page=1,total=0,pendingFile=null,deleting=false,loadingFiles=false;
 let limitsLoaded=false,limitsSaving=false;
 function limitsBusy(busy){['limit-stream','limit-job','limit-storage','save-limits'].forEach(id=>el(id).disabled=busy||!limitsLoaded);}
@@ -74,4 +86,4 @@ async function loadUsers(){
 el('refresh-users').addEventListener('click',loadUsers);
 el('previous-users').addEventListener('click',()=>{usersPage--;loadUsers();});
 el('next-users').addEventListener('click',()=>{usersPage++;loadUsers();});
-(async()=>{try{const me=await request('/api/me');if(!me.is_admin)throw new Error('此功能僅限管理員使用');csrf=me.csrf;const settings=await request('/api/admin/settings');saved=settings.registration_open;loaded=true;render();await Promise.all([loadUsers(),loadFiles(),loadLimits(),loadRetention()]);}catch(e){el('registration-status').textContent='無法讀取設定';el('admin-error').textContent=e.message;el('admin-error').hidden=false;el('users-status').textContent='無法讀取使用者';el('files-status').textContent='無法讀取檔案';}})();
+(async()=>{try{const me=await request('/api/me');if(!me.is_admin)throw new Error('此功能僅限管理員使用');csrf=me.csrf;const settings=await request('/api/admin/settings');saved=settings.registration_open;loaded=true;render();await Promise.all([loadUsers(),loadFiles(),loadLimits(),loadRetention(),loadSession()]);}catch(e){el('registration-status').textContent='無法讀取設定';el('admin-error').textContent=e.message;el('admin-error').hidden=false;el('users-status').textContent='無法讀取使用者';el('files-status').textContent='無法讀取檔案';}})();
