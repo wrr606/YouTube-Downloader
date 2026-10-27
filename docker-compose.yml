@@ -1,3 +1,5 @@
+name: youtube-downloader
+
 services:
   youtube_downloader:
     build: .
@@ -20,4 +22,4 @@ services:
     pids_limit: 128
 volumes:
   data:
-    name: harbor_harbor-data
+    name: youtube-downloader-data
