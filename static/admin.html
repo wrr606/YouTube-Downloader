@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f8f9fb"><title>管理員設定 — YouTube 影音下載</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='10' fill='%235142e5'/%3E%3Cpath d='M20 9v17m-7-7 7 7 7-7M11 31h18' stroke='white' stroke-width='3' fill='none'/%3E%3C/svg%3E"><link rel="stylesheet" href="/app.css"><script src="/admin.js" defer></script></head>
+<body><div class="page">
+<header class="page-header"><div><a class="back-link" href="/">← 返回下載頁</a><h1 class="admin-heading"><svg class="admin-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true" focusable="false"><path d="M12 3 4 6v6c0 4 4 7 8 9 4-2 8-5 8-9V6z"/><path d="m8 12 3 3 5-6"/></svg>管理員設定</h1><p>管理帳號註冊、使用者與下載檔案</p></div></header>
+<main><section class="card" aria-labelledby="registration-title"><h2 id="registration-title">帳號註冊</h2>
+<form id="admin-form"><div class="setting-row"><div><label for="registration-open">開放新帳號註冊</label><p class="input-footnote">關閉後，既有帳號仍可正常登入與下載。</p></div><input type="checkbox" role="switch" id="registration-open" disabled></div><p id="registration-status" class="input-footnote" role="status">讀取設定中…</p><div class="setting-actions"><button type="submit" id="save-settings" class="button primary" disabled>儲存設定</button></div></form>
+<p id="admin-message" class="input-footnote" role="status" hidden></p><p id="admin-error" class="error-text" role="alert" hidden></p>
+</section>
+<section class="card library" aria-labelledby="limits-title">
+<h2 id="limits-title">下載大小限制</h2>
+<form id="limits-form"><div class="limits-grid">
+<label>單一影音串流上限（MiB）<input id="limit-stream" type="number" min="1" max="10240" step="1" required disabled></label>
+<label>單次處理總量上限（MiB）<input id="limit-job" type="number" min="1" max="32768" step="1" required disabled></label>
+<label>全部下載總容量（MiB）<input id="limit-storage" type="number" min="1" max="1048576" step="1" required disabled></label>
+</div><p class="input-footnote">1 MiB = 1,048,576 bytes。影片與音訊分別受串流上限限制；合併與轉檔暫存受單次處理總量限制。總容量須至少為單次處理上限的 3 倍。若要提高可下載檔案大小，請一併檢查三項設定。</p>
+<p class="input-footnote">有下載正在處理時請先等待完成，再儲存設定；儲存後的新下載立即套用，無須重啟。</p>
+<div class="setting-actions"><button id="save-limits" class="button primary" type="submit" disabled>儲存大小限制</button></div></form>
+<p id="limits-status" class="input-footnote" role="status">讀取設定中…</p><p id="limits-error" class="error-text" role="alert" hidden></p>
+</section>
+<section class="card library" aria-labelledby="retention-title">
+<h2 id="retention-title">下載保留時間</h2>
+<form id="retention-form"><div class="limits-grid">
+<label>檔案有效時間（小時）<input id="retention-file-hours" type="number" min="1" max="8760" step="1" required disabled></label>
+<label>紀錄保留時間（小時）<input id="retention-history-hours" type="number" min="2" max="17520" step="1" required disabled></label>
+</div><p class="input-footnote">兩者皆從建立下載時計算。例如 24 / 48：滿 24 小時標示「已過期」、停止下載並清理檔案；滿 48 小時從清單移除。紀錄保留時間必須大於檔案有效時間。</p>
+<p class="input-footnote">儲存後套用到既有紀錄，不需重啟。縮短時間可能使現有檔案過期或紀錄消失；延長時間不會恢復已清除的檔案或紀錄。</p>
+<div class="setting-actions"><button id="save-retention" class="button primary" type="submit" disabled>儲存保留時間</button></div></form>
+<p id="retention-status" class="input-footnote" role="status">讀取設定中…</p><p id="retention-error" class="error-text" role="alert" hidden></p>
+</section>
+<section class="card library" aria-labelledby="users-title">
+<div class="section-top"><h2 id="users-title">已註冊使用者 <span id="users-count" class="count">0</span></h2><button class="button small" id="refresh-users" disabled>重新整理</button></div>
+<p class="input-footnote">包含尚未下載過檔案的帳號，每頁顯示 40 位使用者。</p>
+<p id="users-error" class="error-text" role="alert" hidden></p><p id="users-status" class="input-footnote" role="status">讀取使用者中…</p>
+<div id="admin-users"></div><div class="file-pagination"><button id="previous-users" class="button small" disabled>上一頁</button><span id="users-page" class="input-footnote">第 1 頁</span><button id="next-users" class="button small" disabled>下一頁</button></div>
+</section>
+<section class="card library" aria-labelledby="files-title">
+<div class="section-top"><h2 id="files-title">使用者下載檔案 <span id="files-count" class="count">0</span></h2><button class="button small" id="refresh-files" disabled>重新整理</button></div>
+<label for="file-user">使用者<select id="file-user" disabled><option value="">所有使用者</option></select></label>
+<p class="input-footnote">顯示保留期間內的已完成檔案。刪除後，使用者將無法再次下載此檔案。</p>
+<p id="files-error" class="error-text" role="alert" hidden></p><p id="files-status" class="input-footnote" role="status">讀取檔案中…</p>
+<div id="admin-files"></div><div class="file-pagination"><button id="previous-page" class="button small" disabled>上一頁</button><span id="file-page" class="input-footnote">第 1 頁</span><button id="next-page" class="button small" disabled>下一頁</button></div>
+</section></main></div>
+<dialog id="delete-dialog" aria-labelledby="delete-title"><h2 id="delete-title">刪除下載檔案</h2><p id="delete-detail" class="dialog-sub"></p><p class="muted">檔案將從伺服器移除，這個操作無法復原。使用者的下載紀錄會顯示已刪除。</p><p id="delete-error" class="error-text" role="alert" hidden></p><div class="file-actions"><button id="cancel-delete" class="button">取消</button><button id="confirm-delete" class="button danger">確認刪除</button></div></dialog>
+</body></html>

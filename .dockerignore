@@ -1,0 +1,9 @@
+*
+!Cargo.toml
+!Cargo.lock
+!pyproject.toml
+!uv.lock
+!src/
+!src/**
+!static/
+!static/**
