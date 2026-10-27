@@ -93,7 +93,7 @@ docker compose exec youtube_downloader youtube_downloader admin revoke you@examp
 docker compose up --build -d
 ```
 
-SQLite、下載檔案、`app.key` 與刪除暫存皆保存在 Docker named volume `data`。為相容既有部署，Compose 中的實際 volume 名稱為 `harbor_harbor-data`。
+SQLite、下載檔案、`app.key` 與刪除暫存皆保存在 Docker named volume `data`。為相容既有部署，Compose 中的實際 volume 名稱為 `youtube-downloader-data`。
 
 首次啟動會自動產生金鑰，存放於 `/data/app.key`，檔案權限為 `0600`。重啟與重建容器會沿用同一把金鑰，金鑰內容不會寫入日誌。
 
