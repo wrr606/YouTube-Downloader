@@ -14,6 +14,19 @@ function openAuth(){error('auth-error','');$('auth-dialog').showModal();refreshR
 function setMode(next){mode=next==='register'&&!registrationOpen?'login':next;$('login-tab').classList.toggle('selected',mode==='login');$('register-tab').classList.toggle('selected',mode==='register');text('auth-title',mode==='login'?'歡迎回來':'建立帳號');text('auth-description',mode==='login'?'登入後即可下載影片或音樂。':'使用電子郵件建立帳號。');text('auth-submit',mode==='login'?'登入':'建立帳號');$('password').autocomplete=mode==='login'?'current-password':'new-password';$('password').minLength=mode==='register'?8:1;$('password').placeholder=mode==='register'?'至少 8 個字元':'輸入你的密碼';show('login-code-label',false);$('login-code').value='';error('auth-error','');}
 $('auth-open').onclick=openAuth;$('security-open').onclick=()=>user?openSecurity():openAuth();
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$(b.dataset.close).close());
+// Require both the press and release to be outside, so dragging from a field
+// or clicking the dialog's padding/scrollbar does not dismiss it.
+document.querySelectorAll('dialog').forEach(dialog=>{
+  let pressedOutside=false;
+  const outside=event=>{
+    const rect=dialog.getBoundingClientRect();
+    return event.target===dialog&&(event.clientX<rect.left||event.clientX>rect.right||event.clientY<rect.top||event.clientY>rect.bottom);
+  };
+  dialog.addEventListener('pointerdown',event=>{pressedOutside=event.isPrimary&&event.button===0&&outside(event);});
+  dialog.addEventListener('click',event=>{if(pressedOutside&&outside(event))dialog.close();pressedOutside=false;});
+  dialog.addEventListener('pointercancel',()=>{pressedOutside=false;});
+  dialog.addEventListener('close',()=>{pressedOutside=false;});
+});
 document.querySelectorAll('dialog').forEach(d=>d.addEventListener('close',()=>{if(d.id==='auth-dialog'){$('password').value='';$('login-code').value='';}else{$('security-password').value='';$('disable-code').value='';$('confirm-code').value='';$('qr').removeAttribute('src');text('totp-secret','');text('recovery-codes','');}}));
 $('login-tab').onclick=()=>setMode('login');$('register-tab').onclick=()=>setMode('register');
 $('auth-form').onsubmit=async e=>{e.preventDefault();error('auth-error','');await busy($('auth-submit'),async()=>{try{const d=await api('/api/'+mode,{email:$('email').value,password:$('password').value,code:$('login-code').value.trim()});if(d.mfa_required){show('login-code-label');$('login-code').focus();toast('請輸入手機驗證碼，或使用備援碼');return;}csrf=d.csrf;$('auth-dialog').close();await refreshUser();await loadJobs();toast(mode==='register'?'帳號建立完成，歡迎來到 YouTube_Downloader':'已登入你的個人空間');}catch(e){error('auth-error',e.message);}});};

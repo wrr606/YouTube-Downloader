@@ -14,7 +14,11 @@
 :root[data-theme="dark"]{color-scheme:dark;--text:#e7e9f0;--page:#11131b;--surface:#1c202c;--muted:#a3adbf;--border:#353c4e;--secondary:#c6cedd;--placeholder:#939eb2;--accent-soft:#2b2846;--accent-text:#b7adff;--hover-border:#7165ba;--danger-text:#ffaaa5;--danger-bg:#3b242c;--danger-border:#74404b;--purple:#9182ff}
 :root[data-theme="dark"] .button.primary{background:#6050d5;border-color:#6050d5}
 :root[data-theme="dark"] .button.primary:hover{background:#7160e5}
-.theme-picker{display:flex;align-items:center;gap:8px;margin:0;color:var(--secondary);font-size:12px;white-space:nowrap}
-.theme-picker select{width:auto;min-height:36px;margin:0;padding:7px 28px 7px 10px;font-size:12px}
+.theme-toggle{width:36px;min-height:36px;padding:7px;flex-shrink:0;color:var(--secondary)}
+.theme-toggle svg{display:none;width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.theme-toggle[data-mode="light"] [data-theme-icon="light"],.theme-toggle[data-mode="dark"] [data-theme-icon="dark"],.theme-toggle[data-mode="system"] [data-theme-icon="system"]{display:block}
+@media(prefers-reduced-motion:no-preference){
+  :root.theme-ready,:root.theme-ready *, :root.theme-ready *::before,:root.theme-ready *::after{transition-property:background-color,color,border-color,box-shadow;transition-duration:.25s;transition-timing-function:ease}
+}
 .header-actions{flex-shrink:1}
 @media(max-width:700px){.page-header{flex-wrap:wrap}.header-actions{justify-content:flex-start}}
