@@ -123,7 +123,7 @@ wheels = [
 
 [[package]]
 name = "youtube-downloader-runtime"
-version = "0.1.0"
+version = "1.0.0"
 source = { virtual = "." }
 dependencies = [
     { name = "yt-dlp", extra = ["default"] },

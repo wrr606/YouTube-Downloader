@@ -2,7 +2,7 @@ name: youtube-downloader
 
 services:
   youtube_downloader:
-    build: .
+    image: wrr606/youtube-downloader
     container_name: youtube-downloader
     ports:
       - "${APP_PORT:-3000}:3000"
