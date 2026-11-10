@@ -13,7 +13,7 @@
 
 ## 使用 Docker Hub 映像部署
 
-在 Linux 主機安裝 Docker 和 Docker Compose，並將網域的 HTTPS 反向代理指向主機的 HTTP 連接埠（預設為 `3000`）。以下使用 `wrr606/youtube-downloader:v1.0.0` 映像，內含 yt-dlp 和 FFmpeg。
+在 Linux 主機安裝 Docker 和 Docker Compose，並將網域的 HTTPS 反向代理指向主機的 HTTP 連接埠（預設為 `3000`）。以下使用 `wrr606/youtube-downloader` 映像，內含 yt-dlp 和 FFmpeg。
 
 ### 1. 建立部署目錄與 Compose 設定
 
@@ -29,7 +29,7 @@ name: youtube-downloader
 
 services:
   youtube_downloader:
-    image: wrr606/youtube-downloader:v1.0.0
+    image: wrr606/youtube-downloader
     container_name: youtube-downloader
     ports:
       - "${APP_PORT:-3000}:3000"
@@ -76,7 +76,7 @@ git clone https://github.com/wrr606/YouTube-Downloader.git
 cd YouTube-Downloader
 ```
 
-開啟專案的 `docker-compose.yml`，將 `youtube_downloader` 服務中的 `image: wrr606/youtube-downloader:v1.0.0` 那一行替換為 `build: .`，保留相同縮排與其餘設定。`.` 表示使用專案根目錄作為建置內容，並讀取該目錄的 `Dockerfile`。
+開啟專案的 `docker-compose.yml`，將 `youtube_downloader` 服務中的 `image: wrr606/youtube-downloader` 那一行替換為 `build: .`，保留相同縮排與其餘設定。`.` 表示使用專案根目錄作為建置內容，並讀取該目錄的 `Dockerfile`。
 
 首次部署時，用 `cp -n .env.example .env` 建立設定檔。若只在這台主機測試，將 `.env` 設為：
 
@@ -111,7 +111,7 @@ docker compose exec youtube_downloader youtube_downloader admin grant you@exampl
 
 ### 使用 Docker Hub 映像
 
-到 [Docker Hub 的 Tags 頁面](https://hub.docker.com/r/wrr606/youtube-downloader/tags) 找到要部署的版本。在 `docker-compose.yml` 的 `image: wrr606/youtube-downloader:v1.0.0` 中，將 `v1.0.0` 換成該版本標籤。儲存後執行：
+執行以獲取最新的 Docker image：
 
 ```sh
 docker compose pull && docker compose up -d
