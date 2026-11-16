@@ -1,7 +1,4 @@
 # YouTube Downloader
-
-![YouTube Downloader 網站畫面](doc/exhibit.png)
-
 可自行架設的 YouTube 影音下載網站。透過繁體中文網頁介面貼上影片連結，即可選擇畫質或音訊格式、追蹤下載進度，並管理下載紀錄。
 
 以 Rust 建置後端，搭配 yt-dlp 與 FFmpeg 處理影音，提供帳號系統、兩步驟驗證與管理後台，支援透過 Docker Compose 在 Linux 部署。
