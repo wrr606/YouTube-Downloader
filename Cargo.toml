@@ -3,6 +3,7 @@ name = "youtube_downloader"
 version = "1.0.0"
 edition = "2024"
 rust-version = "1.95"
+exclude = ["/doc/**"]
 
 [dependencies]
 axum = "0.8"

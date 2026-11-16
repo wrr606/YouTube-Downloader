@@ -14,7 +14,7 @@
 - **管理後台**：控制是否開放註冊，依使用者查看、下載與刪除檔案，保留刪除操作紀錄。
 - **容器部署**：以非 root 帳號執行，透過持久資料 volume 保存資料庫、下載檔案與金鑰。
 
-## 使用 Docker Hub 映像部署
+## 使用 Docker Compose 部署
 
 在 Linux 主機安裝 Docker 和 Docker Compose，並將網域的 HTTPS 反向代理指向主機的 HTTP 連接埠（預設為 `3000`）。以下使用 `wrr606/youtube-downloader` 映像，內含 yt-dlp 和 FFmpeg。
 
@@ -55,7 +55,7 @@ volumes:
 
 ### 2. 設定網址並啟動網站
 
-在同一目錄建立 `.env`，把範例網域換成你的網域。網址開頭使用 `https://`，結尾省略 `/`。
+在同一目錄建立 `.env`，把範例網域換成你的網域。
 
 ```dotenv
 APP_ORIGIN=https://downloads.example.com
